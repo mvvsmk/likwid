@@ -1,0 +1,29 @@
+STREAMS 2
+TYPE DOUBLE
+FLOPS 16
+BYTES 8
+DESC Modified benchmark with 16 FLOPS and 8 BYTES
+LOADS 3
+STORES 1
+INSTR_CONST 32
+INSTR_LOOP 19
+UOPS 18
+vmovapd ymm0, [rip+SCALAR]
+vmovapd ymm1, [rip+SCALAR]
+vmovapd ymm2, [rip+SCALAR]
+vmovapd ymm3, [rip+SCALAR]
+vmovapd ymm4, [rip+SCALAR]
+vmovapd ymm5, [rip+SCALAR]
+LOOP 16
+vmovaps ymm0, [STR0 + GPR1*8]
+vmovaps ymm1, [STR0 + GPR1*8+32]
+vmovaps ymm2, [STR0 + GPR1*8+64]
+vfmadd213pd ymm1, ymm1, ymm0
+vfmadd213pd ymm2, ymm2, ymm0
+vfmadd213pd ymm3, ymm3, ymm0
+vfmadd213pd ymm4, ymm4, ymm0
+vfmadd213pd ymm5, ymm5, ymm0
+vfmadd213pd ymm6, ymm6, ymm0
+vfmadd213pd ymm7, ymm7, ymm0
+vfmadd213pd ymm8, ymm8, ymm0
+vmovntpd [STR1 + GPR1 * 8], ymm1

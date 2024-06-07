@@ -111,6 +111,7 @@ typedef struct {
     int    init_per_thread;
     int* processors;
     void** streams;
-} ThreadUserData;
+    uint64_t energy;
+}  ThreadUserData;
 
 #endif /*TEST_TYPES_H*/

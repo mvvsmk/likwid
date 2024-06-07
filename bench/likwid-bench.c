@@ -148,6 +148,9 @@ int main(int argc, char** argv)
     double time;
     double cycPerUp = 0.0;
     double cycPerCL = 0.0;
+    double power = 0.0;
+    uint64_t energy = 0;
+    double time_e;
     TestCase* test = NULL;
     uint64_t realSize = 0;
     uint64_t realIter = 0;
@@ -656,8 +659,10 @@ int main(int argc, char** argv)
 #endif
 
     timer_start(&itertime);
+/* --------------------------------------------------   Measure Power Here (Start 1)   ------------------------------------------------------- */
     threads_create(runTest);
     threads_join();
+/* --------------------------------------------------   Measure Power Here (End 1)  ------------------------------------------------------- */
     timer_stop(&itertime);
 
     for (int i=0; i<globalNumberOfThreads; i++)
@@ -673,6 +678,30 @@ int main(int argc, char** argv)
             minCycles = threads_data[i].cycles;
         }
     }
+
+    for (int i=0; i<globalNumberOfThreads; i++)
+    {
+        realSize += threads_data[i].data.size;
+        realIter += threads_data[i].data.iter;
+        if (threads_data[i].cycles > maxCycles)
+        {
+            maxCycles = threads_data[i].cycles;
+        }
+        if (threads_data[i].cycles < minCycles)
+        {
+            minCycles = threads_data[i].cycles;
+        }
+        if (threads_data[i].data.energy > energy){
+            energy = threads_data[i].data.energy;
+            if(cyclesClock > 0){
+                time_e = (double) maxCycles / (double) cyclesClock;
+            }
+            else{
+                time_e = timer_print(&itertime);
+            }
+        }
+    }
+    power = energy / time_e ;
 
     if (cyclesClock > 0)
     {
@@ -705,6 +734,8 @@ int main(int argc, char** argv)
     ownprintf("CPU Clock:\t\t%" PRIu64 "\n", timer_getCpuClock());
     ownprintf("Cycle Clock:\t\t%" PRIu64 "\n", cyclesClock);
     ownprintf("Time:\t\t\t%e sec\n", time);
+    ownprintf("Power:\t\t\t%e (micro J )/sec\n", power);
+    ownprintf("Energy:\t\t\t%" PRIu64 " micro J\n",energy);
     ownprintf("Iterations:\t\t%" PRIu64 "\n", realIter);
     ownprintf("Iterations per thread:\t%" PRIu64 "\n",iters_per_thread);
     ownprintf("Inner loop executions:\t%d\n", (int)(((double)realSize)/((double)test->stride*globalNumberOfThreads)));

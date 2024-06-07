@@ -45,6 +45,51 @@
 //#include <likwid.h>
 #include <likwid-marker.h>
 
+uint64_t read_msr_with_rdmsr(uint32_t msr_address) {
+    char command[256];
+    char buffer[128];
+    uint64_t msr_value;
+    FILE* fp;
+
+    const char* env_var_name = "MY_SUDO_PASSWORD"; // Name of the environment variable
+    char* env_var_value;
+
+    // Get the value of the environment variable
+    env_var_value = getenv(env_var_name);
+
+    // Check if the environment variable exists
+
+    if (env_var_value != NULL) {
+        snprintf(command, sizeof(command), "echo %s | sudo -S rdmsr %d -u",env_var_value,msr_address);
+    } else {
+        printf("The environment variable %s is not set.\n", env_var_name);
+        exit(1);
+    }
+
+
+    fp = popen(command, "r");
+    if (fp == NULL) {
+        perror("popen");
+        exit(EXIT_FAILURE);
+    }
+
+    if (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        msr_value = strtoull(buffer, NULL, 10);
+    } else {
+        perror("fgets");
+        pclose(fp);
+        exit(EXIT_FAILURE);
+    }
+#ifdef DEBUG_LIKWID
+    printf("\n MSR 0x%x: %llu\n", msr_address, msr_value);
+#endif
+    // Close the pipe
+    pclose(fp);
+
+    return msr_value;
+}
+
+
 /* #####   MACROS  -  LOCAL TO THIS SOURCE FILE   ######################### */
 
 #define BARRIER   barrier_synchronize(&barr)
@@ -53,6 +98,8 @@
     LIKWID_MARKER_REGISTER("bench");  \
     BARRIER; \
     LIKWID_MARKER_START("bench");  \
+    energystart = read_msr_with_rdmsr(1553); \
+/*               Measure Power Here (Start 2)                       */\
     timer_start(&time); \
     for (i=0; i<myData->iter; i++) \
     {   \
@@ -60,6 +107,8 @@
     } \
     BARRIER; \
     timer_stop(&time); \
+    energyend = read_msr_with_rdmsr(1553); \
+/*               Measure Power Here (End 2)                           */\
     LIKWID_MARKER_STOP("bench");  \
     data->cycles = timer_printCycles(&time); \
     BARRIER
@@ -80,6 +129,8 @@ runTest(void* arg)
     ThreadData* data;
     ThreadUserData* myData;
     TimerData time;
+    unsigned long long energystart;
+    unsigned long long energyend;
     FuncPrototype func;
 
     data = (ThreadData*) arg;
@@ -458,6 +509,10 @@ runTest(void* arg)
         default:
             break;
     }
+    myData->energy = energyend - energystart;
+#ifdef DEBUG_LIKWID
+    printf("The energy for the tread %d is : %d \n",threadId,myData->energy);
+#endif
     free(barr.index);
     pthread_exit(NULL);
 }

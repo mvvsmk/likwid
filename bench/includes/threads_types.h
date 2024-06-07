@@ -43,6 +43,7 @@ typedef struct {
     double     time;
     uint64_t   cycles;
     ThreadUserData data;
+    // uint64_t energy;
 } ThreadData;
 
 typedef struct {
