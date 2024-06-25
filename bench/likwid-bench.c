@@ -40,6 +40,7 @@
 #include <inttypes.h>
 #include <math.h>
 #include <signal.h>
+#include <papi.h>
 
 #include <bstrlib.h>
 #include <errno.h>
@@ -58,6 +59,59 @@
 
 extern void* runTest(void* arg);
 extern void* getIterSingle(void* arg);
+int retval;
+int eventset = PAPI_NULL;
+long long papi_counter = 0;
+char *EventName = "perf::PERF_COUNT_HW_CPU_CYCLES";
+
+void papi_init() {
+  // papi init
+  retval = PAPI_library_init(PAPI_VER_CURRENT);
+  if (retval != PAPI_VER_CURRENT) {
+    fprintf(stderr, "Error initializing PAPI! %s \n", PAPI_strerror(retval));
+  }
+  // papi creating event set
+  retval = PAPI_create_eventset(&eventset);
+  if (retval != PAPI_OK) {
+    fprintf(stderr, "Error creating eventset! %s\n", PAPI_strerror(retval));
+  }
+
+  const char* env_var_name = "PAPI_MEASURE"; // Name of the environment variable
+  char* env_var_value;
+
+  // Get the value of the environment variable
+  env_var_value = getenv(env_var_name);
+
+  // Check if the environment variable exists
+
+  if (env_var_value == NULL) {
+    printf("The environment variable %s is not set .\n", env_var_name);
+  }else{
+    EventName = env_var_value;
+  }
+  // papi adding event set
+  retval = PAPI_add_named_event(eventset, EventName);
+  if (retval != PAPI_OK) {
+    fprintf(stderr, "Error adding event %s: %s\n",EventName,PAPI_strerror(retval));
+  }
+
+  // starting count
+  PAPI_reset(eventset);
+  retval = PAPI_start(eventset);
+  if (retval != PAPI_OK) {
+    fprintf(stderr, "Error starting : %s\n", PAPI_strerror(retval));
+  }
+}
+
+void papi_end(){
+  // ending count
+  retval = PAPI_stop(eventset, &papi_counter);
+  if (retval != PAPI_OK) {
+    fprintf(stderr, "Error stopping:  %s\n", PAPI_strerror(retval));
+  }
+
+}
+
 
 /* #####   MACROS  -  LOCAL TO THIS SOURCE FILE   ######################### */
 
@@ -660,8 +714,10 @@ int main(int argc, char** argv)
 
     timer_start(&itertime);
 /* --------------------------------------------------   Measure Power Here (Start 1)   ------------------------------------------------------- */
+    papi_init();
     threads_create(runTest);
     threads_join();
+    papi_end();
 /* --------------------------------------------------   Measure Power Here (End 1)  ------------------------------------------------------- */
     timer_stop(&itertime);
 
@@ -734,8 +790,6 @@ int main(int argc, char** argv)
     ownprintf("CPU Clock:\t\t%" PRIu64 "\n", timer_getCpuClock());
     ownprintf("Cycle Clock:\t\t%" PRIu64 "\n", cyclesClock);
     ownprintf("Time:\t\t\t%e sec\n", time);
-    ownprintf("Power:\t\t\t%e (micro J )/sec\n", power);
-    ownprintf("Energy:\t\t\t%" PRIu64 " micro J\n",energy);
     ownprintf("Iterations:\t\t%" PRIu64 "\n", realIter);
     ownprintf("Iterations per thread:\t%" PRIu64 "\n",iters_per_thread);
     ownprintf("Inner loop executions:\t%d\n", (int)(((double)realSize)/((double)test->stride*globalNumberOfThreads)));
@@ -808,6 +862,14 @@ int main(int argc, char** argv)
                 LLU_CAST ((double)realSize/test->stride)*test->uops*threads_data[0].data.iter);
     }
 
+    ownprintf(bdata(HLINE));
+    /* Printing data for collection of Power Data */
+    ownprintf("DATA_READ Time:-:%e sec\n", time);
+    ownprintf("DATA_READ Power:-:%e (microJ)/sec\n", power);
+    ownprintf("DATA_READ Energy:-:%" PRIu64 " microJ\n",energy);
+    ownprintf("DATA_READ Papi_event:-:%s\n",EventName);
+    ownprintf("DATA_READ Papi_reading:-:%lld\n",papi_counter);
+    /* Printing data for collection of Power Data (end) */
     ownprintf(bdata(HLINE));
     threads_destroy(numberOfWorkgroups, test->streams);
     allocator_finalize();

@@ -283,11 +283,3 @@ if __name__ == "__main__":
     # # print(generate_pure_float_and_load(flops, bytes))
     # print(generate_pure_float_and_load_v2(flops=flops, bytes=bytes))
     # print(f"OI is {flops/bytes}")
-    """
-    Hey nilesh bhaiya, I have finished up with benchmark generator script, 
-    the OI I have tested are [0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256] 
-    with the following configuration[[2, 8], [4, 8], [8, 8], [16, 8], [32, 8], [64, 8], [128, 8], [256, 8], [512, 8], [1024, 8], [2048, 8]]
-    this is flops, bytes used for each OI
-    The scripts were giving a segfault initially but now I have rectified it.
-    There are 2 assumptions I have made and they are mentioned in the script.
-    """

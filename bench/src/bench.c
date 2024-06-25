@@ -42,6 +42,7 @@
 #include <allocator.h>
 #include <threads.h>
 #include <barrier.h>
+#include <papi.h>
 //#include <likwid.h>
 #include <likwid-marker.h>
 
@@ -63,7 +64,8 @@ uint64_t read_msr_with_rdmsr(uint32_t msr_address) {
         snprintf(command, sizeof(command), "echo %s | sudo -S rdmsr %d -u",env_var_value,msr_address);
     } else {
         printf("The environment variable %s is not set.\n", env_var_name);
-        exit(1);
+        printf("Energy and Power Not Measured.\n", env_var_name);
+        return(0);
     }
 
 
